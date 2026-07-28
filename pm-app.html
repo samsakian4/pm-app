@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>نگهداری و تعمیرات دستگاه‌ها</title>
-<script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
 <link href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
   :root{
@@ -145,13 +145,20 @@ const SUPABASE_URL = "https://xxomzjvyfndabjglrovs.supabase.co";
 const SUPABASE_ANON_KEY = "sb_publishable_1xqnKtnZpFpWFNjAZl5mOQ_4In1sVaF";
 // ==========================================================
 
-let supabase = null;
-if (SUPABASE_URL !== "YOUR_SUPABASE_URL" && SUPABASE_ANON_KEY !== "YOUR_SUPABASE_ANON_KEY") {
-  supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-} else {
+let sb = null;
+try {
+  if (SUPABASE_URL !== "YOUR_SUPABASE_URL" && SUPABASE_ANON_KEY !== "YOUR_SUPABASE_ANON_KEY") {
+    sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+  } else {
+    document.getElementById('configWarning').style.display = 'block';
+    document.getElementById('configWarning').innerText =
+      '⚠️ هنوز آدرس Supabase و anon key تنظیم نشده. مقادیر SUPABASE_URL و SUPABASE_ANON_KEY رو در بالای فایل پر کن.';
+  }
+} catch (err) {
+  console.error('Supabase init failed:', err);
   document.getElementById('configWarning').style.display = 'block';
   document.getElementById('configWarning').innerText =
-    '⚠️ هنوز آدرس Supabase و anon key تنظیم نشده. مقادیر SUPABASE_URL و SUPABASE_ANON_KEY رو در بالای فایل پر کن.';
+    '⚠️ اتصال به Supabase برقرار نشد (کتابخانه لود نشد). کنسول مرورگر (F12) را چک کن.';
 }
 
 const PERIOD_LABELS = { day:'روزانه', week:'هفتگی', month:'ماهانه', season:'فصلی', year:'سالانه', custom:'دلخواه (روز)' };
@@ -201,11 +208,11 @@ function taskById(id){ return state.tasks.find(t=>t.id===id); }
 
 // ---------- data loading ----------
 async function loadAll(){
-  if(!supabase) return;
+  if(!sb) return;
   const [{data:devices, error:e1}, {data:tasks, error:e2}, {data:logs, error:e3}] = await Promise.all([
-    supabase.from('devices').select('*').order('created_at', {ascending:true}),
-    supabase.from('pm_tasks').select('*').order('next_due', {ascending:true}),
-    supabase.from('task_logs').select('*').order('performed_date', {ascending:false}).limit(500)
+    sb.from('devices').select('*').order('created_at', {ascending:true}),
+    sb.from('pm_tasks').select('*').order('next_due', {ascending:true}),
+    sb.from('task_logs').select('*').order('performed_date', {ascending:false}).limit(500)
   ]);
   if(e1||e2||e3){ console.error(e1,e2,e3); toast('خطا در دریافت اطلاعات'); return; }
   state.devices = devices || [];
@@ -308,7 +315,7 @@ async function addDevice(){
   const location = document.getElementById('newDeviceLocation').value.trim();
   const description = document.getElementById('newDeviceDesc').value.trim();
   if(!name){ toast('نام دستگاه را وارد کن'); return; }
-  const {error} = await supabase.from('devices').insert({name, location, description});
+  const {error} = await sb.from('devices').insert({name, location, description});
   if(error){ console.error(error); toast('خطا در ثبت دستگاه'); return; }
   toast('دستگاه اضافه شد');
   loadAll();
@@ -319,7 +326,7 @@ async function editDevicePrompt(id){
   const name = prompt('نام دستگاه:', d.name);
   if(name===null) return;
   const location = prompt('محل استقرار:', d.location || '');
-  const {error} = await supabase.from('devices').update({name, location}).eq('id', id);
+  const {error} = await sb.from('devices').update({name, location}).eq('id', id);
   if(error){ toast('خطا در ویرایش'); return; }
   toast('ذخیره شد'); loadAll();
 }
@@ -328,7 +335,7 @@ async function deleteDevice(id){
   const taskCount = state.tasks.filter(t=>t.device_id===id).length;
   const msg = taskCount ? `این دستگاه ${taskCount} تسک دارد. حذف دستگاه، تسک‌ها و گزارش‌های مربوطه را هم حذف می‌کند. ادامه می‌دهی؟` : 'این دستگاه حذف شود؟';
   if(!confirm(msg)) return;
-  const {error} = await supabase.from('devices').delete().eq('id', id);
+  const {error} = await sb.from('devices').delete().eq('id', id);
   if(error){ toast('خطا در حذف'); return; }
   toast('حذف شد'); loadAll();
 }
@@ -390,7 +397,7 @@ async function addTask(){
   const checklistRaw = document.getElementById('newTaskChecklist').value;
   const checklist = checklistRaw.split('\n').map(s=>s.trim()).filter(Boolean);
   if(!title){ toast('عنوان تسک را وارد کن'); return; }
-  const {error} = await supabase.from('pm_tasks').insert({
+  const {error} = await sb.from('pm_tasks').insert({
     device_id, title, period_type, period_value, checklist, next_due: startDate
   });
   if(error){ console.error(error); toast('خطا در ثبت تسک'); return; }
@@ -402,14 +409,14 @@ async function editTaskPrompt(id){
   const title = prompt('عنوان تسک:', t.title);
   if(title===null) return;
   const period_value = prompt('مقدار دوره:', t.period_value);
-  const {error} = await supabase.from('pm_tasks').update({title, period_value: Number(period_value)||1}).eq('id', id);
+  const {error} = await sb.from('pm_tasks').update({title, period_value: Number(period_value)||1}).eq('id', id);
   if(error){ toast('خطا در ویرایش'); return; }
   toast('ذخیره شد'); loadAll();
 }
 
 async function deleteTask(id){
   if(!confirm('این تسک و تاریخچه گزارش‌هایش حذف شود؟')) return;
-  const {error} = await supabase.from('pm_tasks').delete().eq('id', id);
+  const {error} = await sb.from('pm_tasks').delete().eq('id', id);
   if(error){ toast('خطا در حذف'); return; }
   toast('حذف شد'); loadAll();
 }
@@ -451,10 +458,10 @@ async function submitCompleteTask(taskId){
   }));
   const next_due = addPeriod(performed_date, t.period_type, t.period_value);
 
-  const {error:e1} = await supabase.from('task_logs').insert({
+  const {error:e1} = await sb.from('task_logs').insert({
     task_id: taskId, device_id: t.device_id, performed_date, performed_by, checklist_results, notes
   });
-  const {error:e2} = await supabase.from('pm_tasks').update({ last_done: performed_date, next_due }).eq('id', taskId);
+  const {error:e2} = await sb.from('pm_tasks').update({ last_done: performed_date, next_due }).eq('id', taskId);
   if(e1||e2){ console.error(e1,e2); toast('خطا در ثبت گزارش'); return; }
   closeModal();
   toast(`ثبت شد ✓ سررسید بعدی: ${fmtDate(next_due)}`);
@@ -538,7 +545,8 @@ function exportCSV(){
 }
 
 // ---------- init ----------
-if(supabase) loadAll();
+renderAll();
+if(sb) loadAll();
 </script>
 </body>
 </html>
