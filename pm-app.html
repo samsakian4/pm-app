@@ -94,11 +94,60 @@
   }
   .filters{display:flex; gap:10px; flex-wrap:wrap; margin-bottom:14px;}
   .filters > div{flex:1; min-width:160px;}
+  .toolbar{display:flex; gap:8px; justify-content:flex-end; margin-bottom:12px;}
+  .icon-btn{
+    width:38px; height:38px; border-radius:10px; background:var(--panel2); border:1px solid var(--border);
+    color:var(--muted); display:flex; align-items:center; justify-content:center; cursor:pointer; position:relative;
+  }
+  .icon-btn.active-filter{ color:var(--accent); border-color:var(--accent); }
+  .icon-btn svg{width:18px; height:18px;}
+  .icon-btn .dot{
+    position:absolute; top:-3px; left:-3px; width:9px; height:9px; border-radius:50%;
+    background:var(--accent2); display:none;
+  }
+  .icon-btn.has-active .dot{display:block;}
+  .panel{
+    display:none; background:var(--panel2); border:1px solid var(--border); border-radius:12px;
+    padding:14px; margin-bottom:14px;
+  }
+  .panel-title{font-size:12.5px; color:var(--muted); margin-bottom:8px; font-weight:600;}
+  .opt-row{display:flex; flex-wrap:wrap; gap:8px; margin-bottom:10px;}
+  .opt-btn{
+    background:var(--panel); border:1px solid var(--border); color:var(--text);
+    padding:7px 13px; border-radius:20px; cursor:pointer; font-size:13px; font-family:inherit;
+  }
+  .opt-btn.selected{ background:var(--accent); border-color:var(--accent); color:#fff; font-weight:600;}
+  .sync-badge{
+    display:flex; align-items:center; gap:6px; font-size:12px; color:var(--muted);
+    background:var(--panel2); border:1px solid var(--border); padding:6px 12px; border-radius:20px;
+    white-space:nowrap; margin-top:2px;
+  }
+  .sync-dot{width:8px; height:8px; border-radius:50%; background:var(--green); flex-shrink:0;}
+  .sync-badge.offline .sync-dot{background:var(--red);}
+  .sync-badge.syncing .sync-dot{background:var(--orange);}
   #configWarning{
     background:rgba(255,171,64,.12); border:1px solid var(--orange); color:var(--orange);
     padding:12px 16px; border-radius:10px; margin-bottom:16px; font-size:13.5px;
   }
   ::placeholder{color:#5b6b8a;}
+
+  .auth-wrap{
+    min-height:100vh; display:flex; align-items:center; justify-content:center; padding:20px;
+  }
+  .auth-card{
+    background:var(--panel); border:1px solid var(--border); border-radius:var(--radius);
+    padding:26px; max-width:380px; width:100%;
+  }
+  .auth-tabs{display:flex; gap:8px; margin-bottom:16px; border-bottom:1px solid var(--border); padding-bottom:10px;}
+  .auth-tab{
+    flex:1; background:transparent; border:none; color:var(--muted); padding:8px; border-radius:8px;
+    cursor:pointer; font-family:inherit; font-size:13px;
+  }
+  .auth-tab.active{background:var(--accent); color:#fff; font-weight:600;}
+  .auth-error{
+    background:rgba(255,91,110,.12); border:1px solid var(--red); color:var(--red);
+    padding:10px 14px; border-radius:9px; font-size:13px; margin-top:10px;
+  }
 
   @media (max-width:640px){
     header{padding:14px 16px;}
@@ -115,9 +164,48 @@
 </head>
 <body>
 
+<div id="authScreen" class="auth-wrap">
+  <div class="auth-card">
+    <h1 style="font-size:19px; margin:0 0 4px;">🛠️ نگهداری و تعمیرات دستگاه‌ها</h1>
+    <p class="muted" style="margin:0 0 18px;">برای ورود، نام کاربری و رمز عبورت رو وارد کن</p>
+
+    <div class="auth-tabs">
+      <button id="authTabLogin" class="auth-tab active" onclick="switchAuthTab('login')">ورود</button>
+      <button id="authTabSignup" class="auth-tab" onclick="switchAuthTab('signup')">عضویت با کد دعوت واحد</button>
+    </div>
+
+    <div id="authLoginForm">
+      <div class="field"><label>نام کاربری</label><input id="loginUsername" placeholder="مثلاً ali.bargh"></div>
+      <div class="field"><label>رمز عبور</label><input id="loginPassword" type="password" placeholder="••••••"></div>
+      <button class="btn" style="width:100%;" onclick="doLogin()">ورود</button>
+    </div>
+
+    <div id="authSignupForm" style="display:none;">
+      <div class="field"><label>نام و نام‌خانوادگی</label><input id="signupFullName" placeholder="مثلاً علی رضایی"></div>
+      <div class="field"><label>نام کاربری (بدون فاصله، لاتین)</label><input id="signupUsername" placeholder="مثلاً ali.bargh"></div>
+      <div class="field"><label>رمز عبور (حداقل ۶ کاراکتر)</label><input id="signupPassword" type="password" placeholder="••••••"></div>
+      <div class="field"><label>کد دعوت واحد (از مدیر واحدت بگیر)</label><input id="signupInviteCode" placeholder="مثلاً BARGH-1404"></div>
+      <button class="btn" style="width:100%;" onclick="doSignup()">عضویت در واحد</button>
+    </div>
+
+    <div id="authError" class="auth-error" style="display:none;"></div>
+  </div>
+</div>
+
+<div id="appRoot" style="display:none;">
+
 <header>
-  <h1>🛠️ نگهداری و تعمیرات دستگاه‌ها</h1>
-  <p>سیستم مشترک PM — سررسید سرویس‌ها، چک‌لیست و گزارش کارها</p>
+  <div class="row" style="justify-content:space-between; align-items:flex-start;">
+    <div>
+      <h1>🛠️ نگهداری و تعمیرات دستگاه‌ها</h1>
+      <p id="headerSubtitle">سیستم مشترک PM — سررسید سرویس‌ها، چک‌لیست و گزارش کارها</p>
+    </div>
+    <div class="row" style="align-items:center;">
+      <div id="syncBadge" class="sync-badge"></div>
+      <button class="icon-btn" title="حساب کاربری" onclick="togglePanel('accountPanel')">👤</button>
+    </div>
+  </div>
+  <div class="panel" id="accountPanel" style="margin-top:12px;"></div>
 </header>
 
 <nav>
@@ -136,6 +224,8 @@
 </main>
 
 <div id="modalRoot"></div>
+
+</div><!-- /appRoot -->
 
 <script>
 // ==========================================================
@@ -163,7 +253,322 @@ try {
 
 const PERIOD_LABELS = { day:'روزانه', week:'هفتگی', month:'ماهانه', season:'فصلی', year:'سالانه', custom:'دلخواه (روز)' };
 
-let state = { devices: [], tasks: [], logs: [], activeTab:'dashboard', reportDeviceFilter:'', reportFrom:'', reportTo:'' };
+const SORT_ICON = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="7 10 12 5 17 10"/><polyline points="7 14 12 19 17 14"/></svg>`;
+const FUNNEL_ICON = `<svg viewBox="0 0 24 24" fill="currentColor"><path d="M3 4h18a1 1 0 0 1 .8 1.6l-6.8 8.5V19a1 1 0 0 1-.45.84l-3 2A1 1 0 0 1 10 21v-6.9L3.2 5.6A1 1 0 0 1 4 4z"/></svg>`;
+
+let state = {
+  devices: [], tasks: [], logs: [], activeTab:'dashboard',
+  reportDeviceFilter:'', reportFrom:'', reportTo:'', reportSort:'date_desc',
+  dashSort:'due_asc', dashFilterStatus:'all', dashFilterDevice:'',
+  devSort:'name_asc', devFilterLocation:'',
+  taskSort:'due_asc', taskFilterDevice:'', taskFilterPeriod:'',
+  departments: []
+};
+
+// ---------- AUTH ----------
+let session = null;
+let profile = null; // {id, full_name, role, department_id, departments:{name, invite_code}}
+
+function usernameToEmail(u){
+  return u.trim().toLowerCase().replace(/\s+/g,'.') + '@pm.local';
+}
+function isAdmin(){ return profile && profile.role === 'admin'; }
+function isManagerOrAdmin(){ return profile && (profile.role === 'admin' || profile.role === 'manager'); }
+
+function switchAuthTab(tab){
+  document.getElementById('authTabLogin').classList.toggle('active', tab==='login');
+  document.getElementById('authTabSignup').classList.toggle('active', tab==='signup');
+  document.getElementById('authLoginForm').style.display = tab==='login' ? 'block' : 'none';
+  document.getElementById('authSignupForm').style.display = tab==='signup' ? 'block' : 'none';
+  document.getElementById('authError').style.display = 'none';
+}
+function showAuthError(msg){
+  const el = document.getElementById('authError');
+  el.style.display = 'block';
+  el.innerText = msg;
+}
+
+async function doLogin(){
+  if(!sb){ showAuthError('اتصال به Supabase برقرار نیست.'); return; }
+  const username = document.getElementById('loginUsername').value.trim();
+  const password = document.getElementById('loginPassword').value;
+  if(!username || !password){ showAuthError('نام کاربری و رمز عبور را وارد کن.'); return; }
+  const {data, error} = await sb.auth.signInWithPassword({ email: usernameToEmail(username), password });
+  if(error){ showAuthError('ورود ناموفق بود. نام کاربری یا رمز عبور اشتباه است.'); return; }
+  session = data.session;
+  await afterLogin();
+}
+
+async function doSignup(){
+  if(!sb){ showAuthError('اتصال به Supabase برقرار نیست.'); return; }
+  const full_name = document.getElementById('signupFullName').value.trim();
+  const username = document.getElementById('signupUsername').value.trim();
+  const password = document.getElementById('signupPassword').value;
+  const invite_code = document.getElementById('signupInviteCode').value.trim();
+  if(!full_name || !username || !password || !invite_code){ showAuthError('همه فیلدها را پر کن.'); return; }
+  if(password.length < 6){ showAuthError('رمز عبور باید حداقل ۶ کاراکتر باشد.'); return; }
+
+  const {data, error} = await sb.auth.signUp({ email: usernameToEmail(username), password });
+  if(error){ showAuthError('عضویت ناموفق بود: ' + (error.message || 'خطای ناشناخته')); return; }
+  session = data.session;
+  if(!session){ showAuthError('حساب ساخته شد ولی ورود خودکار انجام نشد؛ از تب «ورود» وارد شو.'); switchAuthTab('login'); return; }
+
+  const {error:rpcErr} = await sb.rpc('join_department', { p_invite_code: invite_code, p_full_name: full_name });
+  if(rpcErr){ showAuthError('کد دعوت نامعتبر است: ' + rpcErr.message); return; }
+  await afterLogin();
+}
+
+async function doLogout(){
+  if(sb) await sb.auth.signOut();
+  session = null; profile = null;
+  document.getElementById('appRoot').style.display = 'none';
+  document.getElementById('authScreen').style.display = 'flex';
+}
+
+async function loadProfile(){
+  const {data, error} = await sb.from('profiles')
+    .select('*, departments(name, invite_code)')
+    .eq('id', session.user.id).single();
+  if(error || !data){ profile = null; return false; }
+  profile = data;
+  return true;
+}
+
+async function afterLogin(){
+  const ok = await loadProfile();
+  if(!ok){
+    showAuthError('حساب ساخته شده ولی هنوز به هیچ واحدی متصل نیست. با ادمین سیستم تماس بگیر.');
+    return;
+  }
+  document.getElementById('authScreen').style.display = 'none';
+  document.getElementById('appRoot').style.display = 'block';
+  renderAccountPanel();
+  loadCache();
+  renderAll();
+  updateSyncBadge();
+  if(sb){ loadAll(); checkConnectivity(); }
+}
+
+function renderAccountPanel(){
+  const el = document.getElementById('accountPanel');
+  if(!el || !profile) return;
+  const roleLabel = {admin:'ادمین کل', manager:'مدیر واحد', worker:'نیروی عملیاتی'}[profile.role] || profile.role;
+  const deptName = profile.departments ? profile.departments.name : '—';
+  const invite = (profile.role !== 'worker' && profile.departments) ?
+    `<div class="muted" style="margin-top:8px;">کد دعوت واحد برای نیروهای جدید: <b style="color:var(--text);">${profile.departments.invite_code}</b></div>` : '';
+  document.getElementById('headerSubtitle').innerText = `${deptName} · ${roleLabel}`;
+  el.innerHTML = `
+    <div class="panel-title">حساب کاربری</div>
+    <div>${profile.full_name} — ${roleLabel} — واحد: ${deptName}</div>
+    ${invite}
+    <button class="btn small danger" style="margin-top:12px;" onclick="doLogout()">خروج از حساب</button>
+  `;
+}
+
+function togglePanel(id){
+  document.querySelectorAll('.panel').forEach(p=>{ if(p.id!==id) p.style.display='none'; });
+  const el = document.getElementById(id);
+  if(!el) return;
+  el.style.display = (el.style.display==='block') ? 'none' : 'block';
+}
+function optBtn(label, value, currentValue, onclickFn){
+  const sel = (value===currentValue) ? 'selected' : '';
+  return `<button class="opt-btn ${sel}" onclick="${onclickFn}('${value}')">${label}</button>`;
+}
+function toolbarHtml(sortPanelId, filterPanelId, hasActiveFilter){
+  return `<div class="toolbar">
+    <button class="icon-btn" title="مرتب‌سازی" onclick="togglePanel('${sortPanelId}')">${SORT_ICON}</button>
+    <button class="icon-btn ${hasActiveFilter?'has-active':''}" title="فیلتر" onclick="togglePanel('${filterPanelId}')">${FUNNEL_ICON}<span class="dot"></span></button>
+  </div>`;
+}
+function sortByKey(arr, key, getters){
+  const arr2 = arr.slice();
+  const [field, dir] = key.split('_');
+  const get = getters[field];
+  arr2.sort((a,b)=>{
+    let va = get(a), vb = get(b);
+    let cmp;
+    if(typeof va === 'string') cmp = va.localeCompare(vb, 'fa');
+    else cmp = va - vb;
+    return dir === 'desc' ? -cmp : cmp;
+  });
+  return arr2;
+}
+
+// ---------- OFFLINE CACHE + SYNC QUEUE ----------
+state.syncQueue = [];
+state.syncing = false;
+state.isOnline = navigator.onLine;
+state.needsRefresh = false;
+
+function isTemp(id){ return typeof id === 'string' && id.startsWith('tmp_'); }
+function makeTempId(){ return 'tmp_' + Date.now() + '_' + Math.random().toString(36).slice(2,7); }
+
+function saveCache(){
+  try{
+    localStorage.setItem('pm_cache', JSON.stringify({devices:state.devices, tasks:state.tasks, logs:state.logs}));
+  }catch(e){ console.error('cache save failed', e); }
+}
+function loadCache(){
+  try{
+    const raw = localStorage.getItem('pm_cache');
+    if(raw){ const c = JSON.parse(raw); state.devices = c.devices||[]; state.tasks = c.tasks||[]; state.logs = c.logs||[]; }
+  }catch(e){}
+  try{
+    const rawQ = localStorage.getItem('pm_sync_queue');
+    state.syncQueue = rawQ ? JSON.parse(rawQ) : [];
+  }catch(e){ state.syncQueue = []; }
+}
+function saveQueue(){
+  try{ localStorage.setItem('pm_sync_queue', JSON.stringify(state.syncQueue)); }catch(e){}
+}
+function enqueue(action){
+  action.qid = makeTempId();
+  state.syncQueue.push(action);
+  saveQueue();
+  updateSyncBadge();
+}
+function removeQueueAndDeps(tempId){
+  state.syncQueue = state.syncQueue.filter(q=>{
+    if(q.tempId === tempId) return false;
+    const p = q.payload || {};
+    if(p.device_id===tempId || p.task_id===tempId || p.id===tempId) return false;
+    return true;
+  });
+  saveQueue();
+}
+function resolveTempIds(obj, idMap){
+  if(!obj) return obj;
+  const out = {...obj};
+  ['id','device_id','task_id'].forEach(k=>{
+    if(out[k] && idMap[out[k]] !== undefined) out[k] = idMap[out[k]];
+  });
+  return out;
+}
+
+function hasUnsavedInput(){
+  const ids = ['newDeviceName','newDeviceLocation','newDeviceDesc','newTaskTitle','newTaskChecklist','doneBy','doneNotes'];
+  return ids.some(id=>{
+    const el = document.getElementById(id);
+    return el && el.value && el.value.trim().length > 0;
+  });
+}
+
+function updateSyncBadge(){
+  const el = document.getElementById('syncBadge');
+  if(!el) return;
+  const pending = state.syncQueue.length;
+  if(state.syncing){
+    el.className = 'sync-badge syncing';
+    el.innerHTML = `<span class="sync-dot"></span> در حال همگام‌سازی...`;
+  } else if(!state.isOnline){
+    el.className = 'sync-badge offline';
+    el.innerHTML = `<span class="sync-dot"></span> آفلاین${pending ? ' · '+pending+' مورد در صف' : ''}`;
+  } else if(pending){
+    el.className = 'sync-badge syncing';
+    el.innerHTML = `<span class="sync-dot"></span> آنلاین — ${pending} مورد در صفِ ارسال`;
+  } else {
+    el.className = 'sync-badge';
+    el.innerHTML = `<span class="sync-dot"></span> آنلاین و همگام`;
+  }
+}
+
+// تست واقعیِ اتصال (نه فقط وضعیت کارت شبکه) — هر ۶۰ ثانیه، بدون رفرش صفحه یا فرم‌ها
+async function checkConnectivity(){
+  if(!sb){ state.isOnline = navigator.onLine; updateSyncBadge(); return; }
+  try{
+    const controller = new AbortController();
+    const timer = setTimeout(()=>controller.abort(), 8000);
+    const {error} = await sb.from('devices').select('id').limit(1).abortSignal(controller.signal);
+    clearTimeout(timer);
+    state.isOnline = !error;
+  }catch(err){
+    state.isOnline = false;
+  }
+  updateSyncBadge();
+  if(state.isOnline){
+    processSyncQueue();
+    if(state.needsRefresh && !hasUnsavedInput()){
+      state.needsRefresh = false;
+      loadAll();
+    }
+  }
+}
+
+async function processSyncQueue(){
+  if(!sb || !state.isOnline || state.syncing || !state.syncQueue.length) return;
+  state.syncing = true;
+  updateSyncBadge();
+  const idMap = {};
+  const queue = state.syncQueue.slice();
+
+  for(let i=0; i<queue.length; i++){
+    const action = queue[i];
+    try{
+      if(action.type==='addDevice'){
+        const payload = resolveTempIds(action.payload, idMap);
+        const {data, error} = await sb.from('devices').insert(payload).select().single();
+        if(error) throw error;
+        idMap[action.tempId] = data.id;
+      } else if(action.type==='addTask'){
+        const payload = resolveTempIds(action.payload, idMap);
+        const {data, error} = await sb.from('pm_tasks').insert(payload).select().single();
+        if(error) throw error;
+        idMap[action.tempId] = data.id;
+      } else if(action.type==='completeTask'){
+        const payload = resolveTempIds(action.payload, idMap);
+        const {error:e1} = await sb.from('task_logs').insert(payload);
+        if(e1) throw e1;
+        const tu = resolveTempIds(action.taskUpdate, idMap);
+        const {error:e2} = await sb.from('pm_tasks').update({last_done:tu.last_done, next_due:tu.next_due}).eq('id', tu.task_id);
+        if(e2) throw e2;
+      } else if(action.type==='editDevice'){
+        const payload = resolveTempIds(action.payload, idMap);
+        const {id, ...rest} = payload;
+        const {error} = await sb.from('devices').update(rest).eq('id', id);
+        if(error) throw error;
+      } else if(action.type==='editTask'){
+        const payload = resolveTempIds(action.payload, idMap);
+        const {id, ...rest} = payload;
+        const {error} = await sb.from('pm_tasks').update(rest).eq('id', id);
+        if(error) throw error;
+      } else if(action.type==='deleteDevice'){
+        const payload = resolveTempIds(action.payload, idMap);
+        const {error} = await sb.from('devices').delete().eq('id', payload.id);
+        if(error) throw error;
+      } else if(action.type==='deleteTask'){
+        const payload = resolveTempIds(action.payload, idMap);
+        const {error} = await sb.from('pm_tasks').delete().eq('id', payload.id);
+        if(error) throw error;
+      }
+      // remove this specific action from the real queue on success
+      state.syncQueue = state.syncQueue.filter(q=>q.qid !== action.qid);
+      saveQueue();
+    } catch(err){
+      console.error('sync stopped, will retry later:', err);
+      state.syncing = false;
+      updateSyncBadge();
+      return; // stop here, keep remaining items queued for next attempt
+    }
+  }
+
+  state.syncing = false;
+
+  // اگر کاربر همین الان داره تو یه فرم چیزی تایپ می‌کنه، رفرش کامل لیست رو عقب می‌ندازیم
+  // تا چیزی که تایپ کرده پاک نشه؛ داده‌ها با موفقیت سینک شدن، فقط نمایش به‌روزرسانی نمیشه.
+  if(hasUnsavedInput()){
+    state.needsRefresh = true;
+    toast('همگام‌سازی انجام شد ✓ (نمایش لیست وقتی فرم خالی شد به‌روز میشه)');
+  } else {
+    await loadAll();
+    toast('همگام‌سازی با سرور انجام شد ✓');
+  }
+  updateSyncBadge();
+}
+
+window.addEventListener('online', ()=>{ checkConnectivity(); });
+window.addEventListener('offline', ()=>{ state.isOnline = false; updateSyncBadge(); });
+setInterval(checkConnectivity, 60000);
 
 // ---------- helpers ----------
 function fmtDate(d){
@@ -208,17 +613,48 @@ function taskById(id){ return state.tasks.find(t=>t.id===id); }
 
 // ---------- data loading ----------
 async function loadAll(){
-  if(!sb) return;
-  const [{data:devices, error:e1}, {data:tasks, error:e2}, {data:logs, error:e3}] = await Promise.all([
-    sb.from('devices').select('*').order('created_at', {ascending:true}),
-    sb.from('pm_tasks').select('*').order('next_due', {ascending:true}),
-    sb.from('task_logs').select('*').order('performed_date', {ascending:false}).limit(500)
-  ]);
-  if(e1||e2||e3){ console.error(e1,e2,e3); toast('خطا در دریافت اطلاعات'); return; }
-  state.devices = devices || [];
-  state.tasks = tasks || [];
-  state.logs = logs || [];
-  renderAll();
+  if(!sb){ renderAll(); return; }
+  try{
+    const queries = [
+      sb.from('devices').select('*').order('created_at', {ascending:true}),
+      sb.from('pm_tasks').select('*').order('next_due', {ascending:true}),
+      sb.from('task_logs').select('*').order('performed_date', {ascending:false}).limit(500)
+    ];
+    if(isAdmin()) queries.push(sb.from('departments').select('*').order('name'));
+
+    const results = await Promise.all(queries);
+    const [{data:devices, error:e1}, {data:tasks, error:e2}, {data:logs, error:e3}] = results;
+    if(e1||e2||e3) throw (e1||e2||e3);
+    if(isAdmin() && results[3]){
+      if(results[3].error) throw results[3].error;
+      state.departments = results[3].data || [];
+    }
+
+    let devs = devices || [], tks = tasks || [], lgs = logs || [];
+    // اعمال ویرایش/حذف‌های در صفِ ارسال روی داده تازه دریافت‌شده
+    state.syncQueue.forEach(q=>{
+      if(q.type==='deleteDevice') devs = devs.filter(d=>d.id!==q.payload.id);
+      if(q.type==='deleteTask') tks = tks.filter(t=>t.id!==q.payload.id);
+      if(q.type==='editDevice'){ const d=devs.find(x=>x.id===q.payload.id); if(d) Object.assign(d,q.payload); }
+      if(q.type==='editTask'){ const t=tks.find(x=>x.id===q.payload.id); if(t) Object.assign(t,q.payload); }
+    });
+    // نمایش موقت آیتم‌های تازه‌ساخته که هنوز به سرور نرسیده‌اند
+    state.syncQueue.forEach(q=>{
+      if(q.type==='addDevice') devs.push({...q.payload, id:q.tempId, created_at:new Date().toISOString(), _pending:true});
+      if(q.type==='addTask') tks.push({...q.payload, id:q.tempId, last_done:null, active:true, _pending:true});
+      if(q.type==='completeTask') lgs.unshift({...q.payload, id:q.tempId, created_at:new Date().toISOString(), _pending:true});
+    });
+
+    state.devices = devs; state.tasks = tks; state.logs = lgs;
+    saveCache();
+    renderAll();
+    updateSyncBadge();
+    processSyncQueue();
+  } catch(err){
+    console.error('اتصال برقرار نشد، از نسخه محلی استفاده می‌شود:', err);
+    renderAll();
+    updateSyncBadge();
+  }
 }
 
 function renderAll(){
@@ -242,23 +678,67 @@ document.querySelectorAll('nav button').forEach(btn=>{
 });
 
 // ---------- DASHBOARD ----------
+function setDashSort(v){ state.dashSort = v; renderDashboard(); }
+function setDashFilterStatus(v){ state.dashFilterStatus = v; renderDashboard(); }
+function setDashFilterDevice(v){ state.dashFilterDevice = v; renderDashboard(); }
+
 function renderDashboard(){
   const el = document.getElementById('tab-dashboard');
+  const hasFilter = state.dashFilterStatus!=='all' || !!state.dashFilterDevice;
+
+  const deviceFilterOpts = `<option value="">همه دستگاه‌ها</option>` +
+    state.devices.map(d=>`<option value="${d.id}" ${state.dashFilterDevice===d.id?'selected':''}>${d.name}</option>`).join('');
+
+  const toolbarAndPanels = `
+    ${toolbarHtml('dashSortPanel','dashFilterPanel', hasFilter)}
+    <div class="panel" id="dashSortPanel">
+      <div class="panel-title">مرتب‌سازی بر اساس</div>
+      <div class="opt-row">
+        ${optBtn('نزدیک‌ترین سررسید','due_asc',state.dashSort,'setDashSort')}
+        ${optBtn('دورترین سررسید','due_desc',state.dashSort,'setDashSort')}
+        ${optBtn('نام تسک (الفبا)','title_asc',state.dashSort,'setDashSort')}
+        ${optBtn('نام دستگاه (الفبا)','device_asc',state.dashSort,'setDashSort')}
+      </div>
+    </div>
+    <div class="panel" id="dashFilterPanel">
+      <div class="panel-title">فیلتر بر اساس وضعیت</div>
+      <div class="opt-row">
+        ${optBtn('همه','all',state.dashFilterStatus,'setDashFilterStatus')}
+        ${optBtn('عقب‌افتاده','overdue',state.dashFilterStatus,'setDashFilterStatus')}
+        ${optBtn('امروز','today',state.dashFilterStatus,'setDashFilterStatus')}
+        ${optBtn('نزدیک سررسید','soon',state.dashFilterStatus,'setDashFilterStatus')}
+        ${optBtn('در برنامه','ok',state.dashFilterStatus,'setDashFilterStatus')}
+      </div>
+      <div class="panel-title">فیلتر بر اساس دستگاه</div>
+      <select onchange="setDashFilterDevice(this.value)">${deviceFilterOpts}</select>
+    </div>`;
+
   if(!state.tasks.length){
-    el.innerHTML = `<div class="card empty">هنوز تسکی ثبت نشده. اول از تب «دستگاه‌ها» یک دستگاه و بعد از تب «تسک‌های PM» سرویس‌های دوره‌ای اضافه کن.</div>`;
+    el.innerHTML = toolbarAndPanels + `<div class="card empty">هنوز تسکی ثبت نشده. اول از تب «دستگاه‌ها» یک دستگاه و بعد از تب «تسک‌های PM» سرویس‌های دوره‌ای اضافه کن.</div>`;
     return;
   }
-  const active = state.tasks.filter(t=>t.active !== false);
+
+  let active = state.tasks.filter(t=>t.active !== false);
+  if(state.dashFilterDevice) active = active.filter(t=>t.device_id === state.dashFilterDevice);
+
+  const getters = {
+    due: t=>new Date(t.next_due).getTime(),
+    title: t=>t.title,
+    device: t=>deviceName(t.device_id)
+  };
+  active = sortByKey(active, state.dashSort, getters);
+
   const groups = {overdue:[], today:[], soon:[], ok:[]};
   active.forEach(t=>{ groups[statusOf(t.next_due).key].push(t); });
 
   const section = (key, title, colorClass) => {
     if(!groups[key].length) return '';
-    const items = groups[key].sort((a,b)=> new Date(a.next_due) - new Date(b.next_due)).map(t=>{
+    if(state.dashFilterStatus !== 'all' && state.dashFilterStatus !== key) return '';
+    const items = groups[key].map(t=>{
       const st = statusOf(t.next_due);
       return `<div class="task-item">
         <div class="task-info">
-          <h3>${t.title}</h3>
+          <h3>${t.title}${t._pending ? ' <span class="badge soon">⏳ در صف ارسال</span>' : ''}</h3>
           <div class="muted">${deviceName(t.device_id)} · ${PERIOD_LABELS[t.period_type]||''} · سررسید: ${fmtDate(t.next_due)}</div>
         </div>
         <span class="badge ${st.key}">${st.label}</span>
@@ -268,45 +748,90 @@ function renderDashboard(){
     return `<div class="card"><h2><span class="badge ${colorClass}">${title}</span> (${groups[key].length})</h2>${items}</div>`;
   };
 
-  el.innerHTML =
+  const sections =
     section('overdue', 'عقب‌افتاده', 'overdue') +
     section('today', 'سررسید امروز', 'today') +
     section('soon', 'نزدیک سررسید', 'soon') +
     section('ok', 'در برنامه', 'ok');
+
+  el.innerHTML = toolbarAndPanels + (sections || '<div class="card empty">با این فیلتر موردی یافت نشد.</div>');
 }
 
 // ---------- DEVICES ----------
+function setDevSort(v){ state.devSort = v; renderDevices(); }
+function setDevFilterLocation(v){ state.devFilterLocation = v; renderDevices(); }
+
 function renderDevices(){
   const el = document.getElementById('tab-devices');
-  const cards = state.devices.map(d=>{
-    const taskCount = state.tasks.filter(t=>t.device_id===d.id).length;
-    return `<div class="card device-card">
-      <div class="row" style="justify-content:space-between;">
-        <div>
-          <h3>${d.name}</h3>
-          <div class="muted">${d.location || ''}</div>
-          <div class="muted">${taskCount} تسک PM</div>
-        </div>
+  const hasFilter = !!state.devFilterLocation;
+  const locations = Array.from(new Set(state.devices.map(d=>d.location).filter(Boolean)));
+
+  const toolbarAndPanels = `
+    ${toolbarHtml('devSortPanel','devFilterPanel', hasFilter)}
+    <div class="panel" id="devSortPanel">
+      <div class="panel-title">مرتب‌سازی بر اساس</div>
+      <div class="opt-row">
+        ${optBtn('نام (الف تا ی)','name_asc',state.devSort,'setDevSort')}
+        ${optBtn('نام (ی تا الف)','name_desc',state.devSort,'setDevSort')}
+        ${optBtn('بیشترین تسک','tasks_desc',state.devSort,'setDevSort')}
+        ${optBtn('جدیدترین','created_desc',state.devSort,'setDevSort')}
+      </div>
+    </div>
+    <div class="panel" id="devFilterPanel">
+      <div class="panel-title">فیلتر بر اساس محل استقرار</div>
+      <div class="opt-row">
+        ${optBtn('همه','',state.devFilterLocation||'','setDevFilterLocation')}
+        ${locations.map(loc=>optBtn(loc, loc, state.devFilterLocation||'', 'setDevFilterLocation')).join('')}
+      </div>
+    </div>`;
+
+  let list = state.devices.slice();
+  if(state.devFilterLocation) list = list.filter(d=>d.location === state.devFilterLocation);
+
+  const taskCountOf = d=> state.tasks.filter(t=>t.device_id===d.id).length;
+  const getters = {
+    name: d=>d.name,
+    tasks: d=>taskCountOf(d),
+    created: d=>new Date(d.created_at).getTime()
+  };
+  list = sortByKey(list, state.devSort, getters);
+
+  const cards = list.map(d=>{
+    const taskCount = taskCountOf(d);
+    const editButtons = isManagerOrAdmin() ? `
         <div class="row">
           <button class="btn small secondary" onclick="editDevicePrompt('${d.id}')">ویرایش</button>
           <button class="btn small danger" onclick="deleteDevice('${d.id}')">حذف</button>
+        </div>` : '';
+    return `<div class="card device-card">
+      <div class="row" style="justify-content:space-between;">
+        <div>
+          <h3>${d.name}${d._pending ? ' <span class="badge soon">⏳ در صف ارسال</span>' : ''}</h3>
+          <div class="muted">${d.location || ''}</div>
+          <div class="muted">${taskCount} تسک PM</div>
         </div>
+        ${editButtons}
       </div>
       ${d.description ? `<p class="muted" style="margin-top:8px;">${d.description}</p>` : ''}
     </div>`;
-  }).join('') || `<div class="card empty">هنوز دستگاهی اضافه نشده.</div>`;
+  }).join('') || `<div class="card empty">با این فیلتر دستگاهی یافت نشد.</div>`;
 
-  el.innerHTML = `
+  const addForm = isManagerOrAdmin() ? `
     <div class="card">
       <h2>افزودن دستگاه جدید</h2>
       <div class="grid">
         <div class="field"><label>نام دستگاه *</label><input id="newDeviceName" placeholder="مثلاً پرس شماره ۳"></div>
         <div class="field"><label>محل استقرار</label><input id="newDeviceLocation" placeholder="مثلاً سالن تولید ۱"></div>
+        ${isAdmin() ? `<div class="field"><label>واحد *</label><select id="newDeviceDept">${state.departments.map(dep=>`<option value="${dep.id}">${dep.name}</option>`).join('')}</select></div>` : ''}
       </div>
       <div class="field"><label>توضیحات</label><textarea id="newDeviceDesc" placeholder="توضیح اختیاری..."></textarea></div>
       <button class="btn" onclick="addDevice()">افزودن دستگاه</button>
-    </div>
-    ${cards}
+    </div>` : '';
+
+  el.innerHTML = `
+    ${addForm}
+    ${toolbarAndPanels}
+    ${state.devices.length ? cards : '<div class="card empty">هنوز دستگاهی اضافه نشده.</div>'}
   `;
 }
 
@@ -315,10 +840,24 @@ async function addDevice(){
   const location = document.getElementById('newDeviceLocation').value.trim();
   const description = document.getElementById('newDeviceDesc').value.trim();
   if(!name){ toast('نام دستگاه را وارد کن'); return; }
-  const {error} = await sb.from('devices').insert({name, location, description});
-  if(error){ console.error(error); toast('خطا در ثبت دستگاه'); return; }
-  toast('دستگاه اضافه شد');
-  loadAll();
+  const department_id = isAdmin() ? document.getElementById('newDeviceDept').value : profile.department_id;
+  const payload = {name, location, description, department_id};
+
+  if(navigator.onLine){
+    try{
+      const {error} = await sb.from('devices').insert(payload);
+      if(error) throw error;
+      toast('دستگاه اضافه شد');
+      loadAll();
+      return;
+    }catch(err){ console.error('آنلاین بود ولی ارسال ناموفق شد، در صف ذخیره می‌شود:', err); }
+  }
+  const tempId = makeTempId();
+  state.devices.push({...payload, id:tempId, created_at:new Date().toISOString(), _pending:true});
+  enqueue({type:'addDevice', tempId, payload});
+  saveCache();
+  renderAll();
+  toast('📥 آفلاین: دستگاه ذخیره شد، با اتصال بعدی ارسال می‌شود');
 }
 
 async function editDevicePrompt(id){
@@ -326,21 +865,55 @@ async function editDevicePrompt(id){
   const name = prompt('نام دستگاه:', d.name);
   if(name===null) return;
   const location = prompt('محل استقرار:', d.location || '');
-  const {error} = await sb.from('devices').update({name, location}).eq('id', id);
-  if(error){ toast('خطا در ویرایش'); return; }
-  toast('ذخیره شد'); loadAll();
+  d.name = name; d.location = location;
+
+  if(navigator.onLine && !isTemp(id)){
+    try{
+      const {error} = await sb.from('devices').update({name, location}).eq('id', id);
+      if(error) throw error;
+      toast('ذخیره شد'); loadAll();
+      return;
+    }catch(err){ console.error('ویرایش آنلاین ناموفق، در صف ذخیره می‌شود:', err); }
+  }
+  enqueue({type:'editDevice', payload:{id, name, location}});
+  saveCache();
+  renderAll();
+  toast('📥 آفلاین: ویرایش ذخیره شد، با اتصال بعدی ارسال می‌شود');
 }
 
 async function deleteDevice(id){
   const taskCount = state.tasks.filter(t=>t.device_id===id).length;
   const msg = taskCount ? `این دستگاه ${taskCount} تسک دارد. حذف دستگاه، تسک‌ها و گزارش‌های مربوطه را هم حذف می‌کند. ادامه می‌دهی؟` : 'این دستگاه حذف شود؟';
   if(!confirm(msg)) return;
-  const {error} = await sb.from('devices').delete().eq('id', id);
-  if(error){ toast('خطا در حذف'); return; }
-  toast('حذف شد'); loadAll();
+
+  if(isTemp(id)){
+    removeQueueAndDeps(id);
+    state.devices = state.devices.filter(d=>d.id!==id);
+    state.tasks = state.tasks.filter(t=>t.device_id!==id);
+    saveCache(); renderAll(); toast('حذف شد');
+    return;
+  }
+  if(navigator.onLine){
+    try{
+      const {error} = await sb.from('devices').delete().eq('id', id);
+      if(error) throw error;
+      toast('حذف شد'); loadAll();
+      return;
+    }catch(err){ console.error('حذف آنلاین ناموفق، در صف ذخیره می‌شود:', err); }
+  }
+  state.devices = state.devices.filter(d=>d.id!==id);
+  state.tasks = state.tasks.filter(t=>t.device_id!==id);
+  enqueue({type:'deleteDevice', payload:{id}});
+  saveCache();
+  renderAll();
+  toast('📥 آفلاین: حذف ذخیره شد، با اتصال بعدی اعمال می‌شود');
 }
 
 // ---------- TASKS ----------
+function setTaskSort(v){ state.taskSort = v; renderTasks(); }
+function setTaskFilterDevice(v){ state.taskFilterDevice = v; renderTasks(); }
+function setTaskFilterPeriod(v){ state.taskFilterPeriod = v; renderTasks(); }
+
 function renderTasks(){
   const el = document.getElementById('tab-tasks');
   if(!state.devices.length){
@@ -349,29 +922,61 @@ function renderTasks(){
   }
   const deviceOptions = state.devices.map(d=>`<option value="${d.id}">${d.name}</option>`).join('');
   const periodOptions = Object.entries(PERIOD_LABELS).map(([k,v])=>`<option value="${k}">${v}</option>`).join('');
+  const hasFilter = !!state.taskFilterDevice || !!state.taskFilterPeriod;
+
+  const deviceFilterOpts = `<option value="">همه دستگاه‌ها</option>` +
+    state.devices.map(d=>`<option value="${d.id}" ${state.taskFilterDevice===d.id?'selected':''}>${d.name}</option>`).join('');
+
+  const toolbarAndPanels = `
+    ${toolbarHtml('taskSortPanel','taskFilterPanel', hasFilter)}
+    <div class="panel" id="taskSortPanel">
+      <div class="panel-title">مرتب‌سازی بر اساس</div>
+      <div class="opt-row">
+        ${optBtn('نزدیک‌ترین سررسید','due_asc',state.taskSort,'setTaskSort')}
+        ${optBtn('دورترین سررسید','due_desc',state.taskSort,'setTaskSort')}
+        ${optBtn('نام تسک (الفبا)','title_asc',state.taskSort,'setTaskSort')}
+      </div>
+    </div>
+    <div class="panel" id="taskFilterPanel">
+      <div class="panel-title">فیلتر بر اساس دستگاه</div>
+      <select onchange="setTaskFilterDevice(this.value)" style="margin-bottom:10px;">${deviceFilterOpts}</select>
+      <div class="panel-title">فیلتر بر اساس نوع دوره</div>
+      <div class="opt-row">
+        ${optBtn('همه','',state.taskFilterPeriod,'setTaskFilterPeriod')}
+        ${Object.entries(PERIOD_LABELS).map(([k,v])=>optBtn(v,k,state.taskFilterPeriod,'setTaskFilterPeriod')).join('')}
+      </div>
+    </div>`;
+
+  const getters = {
+    due: t=>new Date(t.next_due).getTime(),
+    title: t=>t.title
+  };
 
   const taskCards = state.devices.map(d=>{
-    const tasks = state.tasks.filter(t=>t.device_id===d.id);
+    let tasks = state.tasks.filter(t=>t.device_id===d.id);
+    if(state.taskFilterDevice && d.id !== state.taskFilterDevice) return '';
+    if(state.taskFilterPeriod) tasks = tasks.filter(t=>t.period_type === state.taskFilterPeriod);
     if(!tasks.length) return '';
+    tasks = sortByKey(tasks, state.taskSort, getters);
     const rows = tasks.map(t=>{
       const st = statusOf(t.next_due);
       const checklist = Array.isArray(t.checklist) ? t.checklist : [];
       return `<div class="task-item">
         <div class="task-info">
-          <h3>${t.title} <span class="badge ${st.key}">${st.label}</span></h3>
+          <h3>${t.title} <span class="badge ${st.key}">${st.label}</span>${t._pending ? ' <span class="badge soon">⏳ در صف ارسال</span>' : ''}</h3>
           <div class="muted">دوره: ${PERIOD_LABELS[t.period_type]||''}${t.period_type==='custom' ? ' — هر '+t.period_value+' روز' : ''} · آخرین انجام: ${fmtDate(t.last_done)} · سررسید بعدی: ${fmtDate(t.next_due)}</div>
           ${checklist.length ? `<div class="muted">چک‌لیست: ${checklist.join('، ')}</div>` : ''}
         </div>
-        <div class="row">
+        ${isManagerOrAdmin() ? `<div class="row">
           <button class="btn small secondary" onclick="editTaskPrompt('${t.id}')">ویرایش</button>
           <button class="btn small danger" onclick="deleteTask('${t.id}')">حذف</button>
-        </div>
+        </div>` : ''}
       </div>`;
     }).join('');
     return `<div class="card"><h2>${d.name}</h2>${rows}</div>`;
   }).join('') || '';
 
-  el.innerHTML = `
+  const addForm = isManagerOrAdmin() ? `
     <div class="card">
       <h2>افزودن تسک PM جدید</h2>
       <div class="grid">
@@ -383,8 +988,12 @@ function renderTasks(){
       </div>
       <div class="field"><label>چک‌لیست / قطعات (هر مورد در یک خط)</label><textarea id="newTaskChecklist" placeholder="مثلاً:&#10;چک روغن&#10;تعویض فیلتر هوا&#10;بازرسی تسمه"></textarea></div>
       <button class="btn" onclick="addTask()">افزودن تسک</button>
-    </div>
-    ${taskCards || '<div class="card empty">هنوز تسکی اضافه نشده.</div>'}
+    </div>` : '';
+
+  el.innerHTML = `
+    ${addForm}
+    ${toolbarAndPanels}
+    ${taskCards || '<div class="card empty">با این فیلتر تسکی یافت نشد.</div>'}
   `;
 }
 
@@ -397,28 +1006,67 @@ async function addTask(){
   const checklistRaw = document.getElementById('newTaskChecklist').value;
   const checklist = checklistRaw.split('\n').map(s=>s.trim()).filter(Boolean);
   if(!title){ toast('عنوان تسک را وارد کن'); return; }
-  const {error} = await sb.from('pm_tasks').insert({
-    device_id, title, period_type, period_value, checklist, next_due: startDate
-  });
-  if(error){ console.error(error); toast('خطا در ثبت تسک'); return; }
-  toast('تسک اضافه شد'); loadAll();
+  const payload = { device_id, title, period_type, period_value, checklist, next_due: startDate };
+
+  if(navigator.onLine && !isTemp(device_id)){
+    try{
+      const {error} = await sb.from('pm_tasks').insert(payload);
+      if(error) throw error;
+      toast('تسک اضافه شد'); loadAll();
+      return;
+    }catch(err){ console.error('ثبت آنلاین ناموفق، در صف ذخیره می‌شود:', err); }
+  }
+  const tempId = makeTempId();
+  state.tasks.push({...payload, id:tempId, last_done:null, active:true, _pending:true});
+  enqueue({type:'addTask', tempId, payload});
+  saveCache();
+  renderAll();
+  toast('📥 آفلاین: تسک ذخیره شد، با اتصال بعدی ارسال می‌شود');
 }
 
 async function editTaskPrompt(id){
   const t = taskById(id);
   const title = prompt('عنوان تسک:', t.title);
   if(title===null) return;
-  const period_value = prompt('مقدار دوره:', t.period_value);
-  const {error} = await sb.from('pm_tasks').update({title, period_value: Number(period_value)||1}).eq('id', id);
-  if(error){ toast('خطا در ویرایش'); return; }
-  toast('ذخیره شد'); loadAll();
+  const period_value = Number(prompt('مقدار دوره:', t.period_value)) || 1;
+  t.title = title; t.period_value = period_value;
+
+  if(navigator.onLine && !isTemp(id)){
+    try{
+      const {error} = await sb.from('pm_tasks').update({title, period_value}).eq('id', id);
+      if(error) throw error;
+      toast('ذخیره شد'); loadAll();
+      return;
+    }catch(err){ console.error('ویرایش آنلاین ناموفق، در صف ذخیره می‌شود:', err); }
+  }
+  enqueue({type:'editTask', payload:{id, title, period_value}});
+  saveCache();
+  renderAll();
+  toast('📥 آفلاین: ویرایش ذخیره شد، با اتصال بعدی ارسال می‌شود');
 }
 
 async function deleteTask(id){
   if(!confirm('این تسک و تاریخچه گزارش‌هایش حذف شود؟')) return;
-  const {error} = await sb.from('pm_tasks').delete().eq('id', id);
-  if(error){ toast('خطا در حذف'); return; }
-  toast('حذف شد'); loadAll();
+
+  if(isTemp(id)){
+    removeQueueAndDeps(id);
+    state.tasks = state.tasks.filter(t=>t.id!==id);
+    saveCache(); renderAll(); toast('حذف شد');
+    return;
+  }
+  if(navigator.onLine){
+    try{
+      const {error} = await sb.from('pm_tasks').delete().eq('id', id);
+      if(error) throw error;
+      toast('حذف شد'); loadAll();
+      return;
+    }catch(err){ console.error('حذف آنلاین ناموفق، در صف ذخیره می‌شود:', err); }
+  }
+  state.tasks = state.tasks.filter(t=>t.id!==id);
+  enqueue({type:'deleteTask', payload:{id}});
+  saveCache();
+  renderAll();
+  toast('📥 آفلاین: حذف ذخیره شد، با اتصال بعدی اعمال می‌شود');
 }
 
 // ---------- COMPLETE TASK MODAL ----------
@@ -438,7 +1086,7 @@ function openCompleteModal(taskId){
         <h2>ثبت انجام کار: ${t.title}</h2>
         <div class="muted" style="margin-bottom:12px;">${deviceName(t.device_id)}</div>
         <div class="field"><label>تاریخ انجام</label><input type="date" id="doneDate" value="${todayISO()}"></div>
-        <div class="field"><label>انجام‌شده توسط</label><input id="doneBy" placeholder="نام..."></div>
+        <div class="field"><label>انجام‌شده توسط</label><input id="doneBy" value="${profile ? profile.full_name : ''}" placeholder="نام..."></div>
         ${checklist.length ? `<div class="field"><label>چک‌لیست</label>${checklistHtml}</div>` : ''}
         <div class="field"><label>یادداشت</label><textarea id="doneNotes" placeholder="توضیح اختیاری..."></textarea></div>
         <button class="btn" onclick="submitCompleteTask('${t.id}')">ثبت و برنامه‌ریزی سررسید بعدی</button>
@@ -457,34 +1105,65 @@ async function submitCompleteTask(taskId){
     item, checked: document.getElementById('chk_'+i) ? document.getElementById('chk_'+i).checked : true
   }));
   const next_due = addPeriod(performed_date, t.period_type, t.period_value);
+  const logPayload = { task_id: taskId, device_id: t.device_id, performed_date, performed_by, checklist_results, notes };
 
-  const {error:e1} = await sb.from('task_logs').insert({
-    task_id: taskId, device_id: t.device_id, performed_date, performed_by, checklist_results, notes
-  });
-  const {error:e2} = await sb.from('pm_tasks').update({ last_done: performed_date, next_due }).eq('id', taskId);
-  if(e1||e2){ console.error(e1,e2); toast('خطا در ثبت گزارش'); return; }
+  if(navigator.onLine && !isTemp(taskId)){
+    try{
+      const {error:e1} = await sb.from('task_logs').insert(logPayload);
+      if(e1) throw e1;
+      const {error:e2} = await sb.from('pm_tasks').update({ last_done: performed_date, next_due }).eq('id', taskId);
+      if(e2) throw e2;
+      closeModal();
+      toast(`ثبت شد ✓ سررسید بعدی: ${fmtDate(next_due)}`);
+      loadAll();
+      return;
+    }catch(err){ console.error('ثبت آنلاین ناموفق، در صف ذخیره می‌شود:', err); }
+  }
+
+  // مسیر آفلاین: ذخیره محلی + قرارگیری در صفِ ارسال
+  t.last_done = performed_date;
+  t.next_due = next_due;
+  state.logs.unshift({...logPayload, id:makeTempId(), created_at:new Date().toISOString(), _pending:true});
+  enqueue({ type:'completeTask', tempId:makeTempId(), payload:logPayload, taskUpdate:{ task_id:taskId, last_done:performed_date, next_due } });
+  saveCache();
   closeModal();
-  toast(`ثبت شد ✓ سررسید بعدی: ${fmtDate(next_due)}`);
-  loadAll();
+  renderAll();
+  toast(`📥 آفلاین: کار ثبت شد، با اتصال بعدی ارسال می‌شود (سررسید بعدی: ${fmtDate(next_due)})`);
 }
 
 // ---------- REPORTS ----------
-function renderReports(){
-  const el = document.getElementById('tab-reports');
-  const deviceOptions = `<option value="">همه دستگاه‌ها</option>` +
-    state.devices.map(d=>`<option value="${d.id}">${d.name}</option>`).join('');
+function setReportSort(v){ state.reportSort = v; renderReports(); }
+function setReportDevice(v){ state.reportDeviceFilter = v; renderReports(); }
+function setReportFrom(v){ state.reportFrom = v; renderReports(); }
+function setReportTo(v){ state.reportTo = v; renderReports(); }
 
+function getFilteredReportLogs(){
   let logs = state.logs.slice();
   if(state.reportDeviceFilter) logs = logs.filter(l=>l.device_id === state.reportDeviceFilter);
   if(state.reportFrom) logs = logs.filter(l=>l.performed_date >= state.reportFrom);
   if(state.reportTo) logs = logs.filter(l=>l.performed_date <= state.reportTo);
+  const getters = {
+    date: l=>new Date(l.performed_date).getTime(),
+    device: l=>deviceName(l.device_id),
+    performer: l=>l.performed_by || ''
+  };
+  return sortByKey(logs, state.reportSort, getters);
+}
+
+function renderReports(){
+  const el = document.getElementById('tab-reports');
+  const deviceOptions = `<option value="">همه دستگاه‌ها</option>` +
+    state.devices.map(d=>`<option value="${d.id}" ${state.reportDeviceFilter===d.id?'selected':''}>${d.name}</option>`).join('');
+  const hasFilter = !!state.reportDeviceFilter || !!state.reportFrom || !!state.reportTo;
+
+  const logs = getFilteredReportLogs();
 
   const rows = logs.map(l=>{
     const t = taskById(l.task_id);
     const chk = Array.isArray(l.checklist_results) ? l.checklist_results : [];
     const chkSummary = chk.length ? `${chk.filter(c=>c.checked).length}/${chk.length} تیک خورده` : '—';
     return `<tr>
-      <td>${fmtDate(l.performed_date)}</td>
+      <td>${fmtDate(l.performed_date)}${l._pending ? ' ⏳' : ''}</td>
       <td>${deviceName(l.device_id)}</td>
       <td>${t ? t.title : '—'}</td>
       <td>${l.performed_by || '—'}</td>
@@ -493,43 +1172,43 @@ function renderReports(){
     </tr>`;
   }).join('');
 
-  el.innerHTML = `
-    <div class="card">
-      <h2>فیلتر گزارش‌ها</h2>
-      <div class="filters">
-        <div class="field"><label>دستگاه</label><select id="repDevice">${deviceOptions}</select></div>
-        <div class="field"><label>از تاریخ</label><input type="date" id="repFrom" value="${state.reportFrom}"></div>
-        <div class="field"><label>تا تاریخ</label><input type="date" id="repTo" value="${state.reportTo}"></div>
-      </div>
-      <div class="row">
-        <button class="btn secondary small" onclick="applyReportFilter()">اعمال فیلتر</button>
-        <button class="btn small" onclick="exportCSV()">⬇ خروجی CSV</button>
+  const toolbarAndPanels = `
+    ${toolbarHtml('repSortPanel','repFilterPanel', hasFilter)}
+    <div class="panel" id="repSortPanel">
+      <div class="panel-title">مرتب‌سازی بر اساس</div>
+      <div class="opt-row">
+        ${optBtn('جدیدترین تاریخ','date_desc',state.reportSort,'setReportSort')}
+        ${optBtn('قدیمی‌ترین تاریخ','date_asc',state.reportSort,'setReportSort')}
+        ${optBtn('نام دستگاه (الفبا)','device_asc',state.reportSort,'setReportSort')}
+        ${optBtn('نام انجام‌دهنده (الفبا)','performer_asc',state.reportSort,'setReportSort')}
       </div>
     </div>
+    <div class="panel" id="repFilterPanel">
+      <div class="panel-title">فیلتر بر اساس دستگاه</div>
+      <select onchange="setReportDevice(this.value)" style="margin-bottom:10px;">${deviceOptions}</select>
+      <div class="row">
+        <div class="field" style="flex:1;"><label>از تاریخ</label><input type="date" value="${state.reportFrom}" onchange="setReportFrom(this.value)"></div>
+        <div class="field" style="flex:1;"><label>تا تاریخ</label><input type="date" value="${state.reportTo}" onchange="setReportTo(this.value)"></div>
+      </div>
+    </div>`;
+
+  el.innerHTML = `
     <div class="card">
-      <h2>تاریخچه سرویس‌ها (${logs.length} مورد)</h2>
+      <div class="row" style="justify-content:space-between;">
+        <h2>تاریخچه سرویس‌ها (${logs.length} مورد)</h2>
+        <button class="btn small" onclick="exportCSV()">⬇ خروجی CSV</button>
+      </div>
+      ${toolbarAndPanels}
       ${logs.length ? `<div style="overflow-x:auto;"><table>
         <thead><tr><th>تاریخ</th><th>دستگاه</th><th>تسک</th><th>انجام‌دهنده</th><th>چک‌لیست</th><th>یادداشت</th></tr></thead>
         <tbody>${rows}</tbody>
       </table></div>` : '<div class="empty">گزارشی یافت نشد.</div>'}
     </div>
   `;
-  document.getElementById('repDevice').value = state.reportDeviceFilter;
-}
-
-function applyReportFilter(){
-  state.reportDeviceFilter = document.getElementById('repDevice').value;
-  state.reportFrom = document.getElementById('repFrom').value;
-  state.reportTo = document.getElementById('repTo').value;
-  renderReports();
 }
 
 function exportCSV(){
-  let logs = state.logs.slice();
-  if(state.reportDeviceFilter) logs = logs.filter(l=>l.device_id === state.reportDeviceFilter);
-  if(state.reportFrom) logs = logs.filter(l=>l.performed_date >= state.reportFrom);
-  if(state.reportTo) logs = logs.filter(l=>l.performed_date <= state.reportTo);
-
+  const logs = getFilteredReportLogs();
   const header = ['تاریخ','دستگاه','تسک','انجام‌دهنده','یادداشت'];
   const rows = logs.map(l=>{
     const t = taskById(l.task_id);
@@ -545,8 +1224,21 @@ function exportCSV(){
 }
 
 // ---------- init ----------
-renderAll();
-if(sb) loadAll();
+switchAuthTab('login');
+(async function initApp(){
+  if(!sb){
+    document.getElementById('authScreen').style.display = 'flex';
+    return;
+  }
+  const {data:{session:existingSession}} = await sb.auth.getSession();
+  if(existingSession){
+    session = existingSession;
+    await afterLogin();
+  } else {
+    document.getElementById('authScreen').style.display = 'flex';
+  }
+})();
 </script>
+
 </body>
 </html>
